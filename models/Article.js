@@ -13,7 +13,7 @@ var ArticleSchema = new Schema({
     },
     summary: {
         type: String,
-        required: true
+        // required: true
     },
     comments: [{
         type: Schema.Types.ObjectId,

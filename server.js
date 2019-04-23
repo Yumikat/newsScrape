@@ -11,8 +11,8 @@ var app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static("public"));
-app.engine("handlebars", exphbs({ defaultLayout: "main" }));
-app.set("view engine", "handlebars");
+// app.engine("handlebars", exphbs({ defaultLayout: "main" }));
+// app.set("view engine", "handlebars");
 
 // var databaseUrl = "newsScrape";
 // var collections = ["scrapedNews"];
@@ -29,13 +29,11 @@ mongoose.connect("mongodb://localhost/newsScrape", { useNewUrlParser: true });
 //     res.send("Hello yumikat");
 // });
 
-app.get("/all", function (req, res) {
-    db.Article.find({}, function (err, data) {
-        if (err) {
-            console.log(err);
-        } else {
-            res.json(data);
-        }
+app.post("/nyt", function (req, res) {
+    db.Article.find({}).then(function (articles) {
+        res.json(articles);
+    }).catch(function (err) {
+        res.json(err);
     });
 });
 
@@ -43,55 +41,91 @@ app.get("/nyt", function (req, res) {
     axios.get("https://www.nytimes.com/").then(function (response) {
         var $ = cheerio.load(response.data);
 
-        // var results = [];
+        var results = [];
+
 
         $("article").each(function (i, element) {
-            var title = $(element).children().text();
-            var link = $(element).find("a").attr("href");
-            var summary = $(element).find("ul.e1n8kpyg1").text();
+            var result = {};
 
-            if (title && link && summary) {
+            result.title = $(this).children().text();
+            result.link = $(this).find("a").attr("href");
+            result.summary = $(this).find("ul.e1n8kpyg1").text();
 
-                db.Article.insert({ title, link, summary }, function (err, inserted) {
-                    if (err) {
-                        console.log(err);
-                    } else {
-                        // results.push(title);
-                        console.log(inserted);
-                    }
+            // if (title && link && summary) {
+
+            db.Article.create(result) //{ title, link, summary })
+                .then(function (articles) {
+                    // console.log(articles);
+                    // results.push(articles);
+                    return db.Article.findOneAndUpdate({ new: true });
+                })
+                // .catch(function (err) {
+                //     console.log(err);
+                // });
+                .then(function (dbarticles) {
+                    res.json(dbarticles);
+                })
+                .catch(function (err) {
+                    res.json(err);
                 });
-            }
+            // app.post("/nyt", function (req, res) {
+            // db.Article.find({}).then(function (dbarticles) {
+            //     res.json(dbarticles);
+            // }).catch(function (err) {
+            //     res.json(err);
+            // });
         });
+        // function (err, inserted) {
+        // if (err) {
+        //     console.log(err);
+        // }
+        // else {
+        // results.push(title);
+        // console.log(inserted);
+        // res.json(inserted);
+        // }
+        // res.json(results);
     });
-    res.send("Scrape complete");
+
+    // app.get("/articles", function (req, res) {
+    // db.Article.find({}).then(function (articles) {
+    //     res.json(articles);
+    // }).catch(function (err) {
+    //     res.json(err);
+    // });
+    // });
+    // }
 });
+// });
+// res.send("Scrape complete");
+// });
 
-app.get("/onion", function (req, res) {
-    axios.get("https://www.theonion.com/").then(function (response) {
-        var $ = cheerio.load(response.data);
+// app.get("/onion", function (req, res) {
+//     axios.get("https://www.theonion.com/").then(function (response) {
+//         var $ = cheerio.load(response.data);
 
-        // var results = [];
+//         // var results = [];
 
-        $("article.postlist_item").each(function (i, element) {
-            var title = $(element).find("h1.headline").text();
-            var link = $(element).children().attr("href");
-            var summary = $(element).children().find("div.entry-summary").find("p").text();
+//         $("article.postlist_item").each(function (i, element) {
+//             var title = $(element).find("h1.headline").text();
+//             var link = $(element).children().attr("href");
+//             var summary = $(element).children().find("div.entry-summary").find("p").text();
 
-            if (title && link && summary) {
+//             // if (title && link && summary) {
 
-                db.Article.insert({ title, link, summary }, function (err, inserted) {
-                    if (err) {
-                        console.log(err);
-                    } else {
-                        // results.push(title);
-                        console.log(inserted);
-                    }
-                });
-            }
-        });
-    });
-    res.send("Scrape complete");
-});
+//             db.Article.create({ title, link, summary }, function (err, inserted) {
+//                 if (err) {
+//                     console.log(err);
+//                 } else {
+//                     // results.push(title);
+//                     console.log(inserted);
+//                 }
+//             });
+//             // }
+//         });
+//     });
+//     res.send("Scrape complete");
+// });
 
 app.listen(PORT, function () {
     console.log("Running on localhost:" + PORT + ".");
